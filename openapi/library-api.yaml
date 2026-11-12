@@ -1,0 +1,592 @@
+openapi: 3.0.3
+info:
+  title: Library System API
+  version: 1.0.0
+  description: |
+    REST API бібліотечної системи. Дозволяє керувати **авторами** (Author)
+    та **книгами** (Book): створювати, переглядати, оновлювати та видаляти записи.
+
+    Усі запити, крім `GET`, потребують авторизації за JWT-токеном
+    (заголовок `Authorization: Bearer <token>`).
+  contact:
+    name: Soft41
+    url: https://github.com/Soft41
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.library.example.com/v1
+    description: Production
+  - url: http://localhost:3000/v1
+    description: Локальний сервер розробки
+
+tags:
+  - name: Authors
+    description: Операції з авторами
+  - name: Books
+    description: Операції з книгами
+
+security:
+  - BearerAuth: []
+
+paths:
+  /authors:
+    get:
+      tags: [Authors]
+      operationId: listAuthors
+      summary: Отримати список авторів
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: country
+          in: query
+          description: Фільтр за країною автора
+          schema:
+            type: string
+          example: Україна
+        - name: search
+          in: query
+          description: Пошук за ім'ям або прізвищем
+          schema:
+            type: string
+          example: Франко
+      responses:
+        '200':
+          description: Список авторів
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorList'
+              example:
+                data:
+                  - id: 1
+                    firstName: Іван
+                    lastName: Франко
+                    birthYear: 1856
+                    country: Україна
+                    biography: Український письменник, поет, публіцист.
+                  - id: 2
+                    firstName: Леся
+                    lastName: Українка
+                    birthYear: 1871
+                    country: Україна
+                    biography: Українська письменниця, поетеса, драматургиня.
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 2
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Authors]
+      operationId: createAuthor
+      summary: Створити автора
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorInput'
+            example:
+              firstName: Тарас
+              lastName: Шевченко
+              birthYear: 1814
+              country: Україна
+              biography: Український поет, письменник, художник.
+      responses:
+        '201':
+          description: Автора створено
+          headers:
+            Location:
+              description: URL створеного ресурсу
+              schema:
+                type: string
+              example: /v1/authors/3
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+              example:
+                id: 3
+                firstName: Тарас
+                lastName: Шевченко
+                birthYear: 1814
+                country: Україна
+                biography: Український поет, письменник, художник.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /authors/{authorId}:
+    parameters:
+      - $ref: '#/components/parameters/AuthorId'
+    get:
+      tags: [Authors]
+      operationId: getAuthor
+      summary: Отримати автора за ID
+      security: []
+      responses:
+        '200':
+          description: Дані автора
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+              example:
+                id: 1
+                firstName: Іван
+                lastName: Франко
+                birthYear: 1856
+                country: Україна
+                biography: Український письменник, поет, публіцист.
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Authors]
+      operationId: updateAuthor
+      summary: Оновити автора
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorInput'
+            example:
+              firstName: Іван
+              lastName: Франко
+              birthYear: 1856
+              country: Україна
+              biography: Автор «Захара Беркута» та «Мойсея».
+      responses:
+        '200':
+          description: Автора оновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Authors]
+      operationId: deleteAuthor
+      summary: Видалити автора
+      description: Автора можна видалити лише тоді, коли в нього немає книг.
+      responses:
+        '204':
+          description: Автора видалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /authors/{authorId}/books:
+    parameters:
+      - $ref: '#/components/parameters/AuthorId'
+    get:
+      tags: [Authors]
+      operationId: listAuthorBooks
+      summary: Отримати книги автора
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Список книг автора
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /books:
+    get:
+      tags: [Books]
+      operationId: listBooks
+      summary: Отримати список книг
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: genre
+          in: query
+          description: Фільтр за жанром
+          schema:
+            $ref: '#/components/schemas/Genre'
+        - name: authorId
+          in: query
+          description: Фільтр за автором
+          schema:
+            type: integer
+            format: int64
+        - name: available
+          in: query
+          description: Лише книги, доступні для видачі
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Список книг
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookList'
+              example:
+                data:
+                  - id: 10
+                    title: Захар Беркут
+                    isbn: '978-966-03-4567-1'
+                    publishedYear: 1883
+                    genre: novel
+                    pages: 256
+                    authorId: 1
+                    available: true
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Books]
+      operationId: createBook
+      summary: Додати книгу
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+            example:
+              title: Лісова пісня
+              isbn: '978-966-10-1234-5'
+              publishedYear: 1911
+              genre: drama
+              pages: 128
+              authorId: 2
+              available: true
+      responses:
+        '201':
+          description: Книгу створено
+          headers:
+            Location:
+              description: URL створеного ресурсу
+              schema:
+                type: string
+              example: /v1/books/11
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /books/{bookId}:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+    get:
+      tags: [Books]
+      operationId: getBook
+      summary: Отримати книгу за ID
+      security: []
+      responses:
+        '200':
+          description: Дані книги
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              example:
+                id: 10
+                title: Захар Беркут
+                isbn: '978-966-03-4567-1'
+                publishedYear: 1883
+                genre: novel
+                pages: 256
+                authorId: 1
+                available: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Books]
+      operationId: updateBook
+      summary: Оновити книгу
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '200':
+          description: Книгу оновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+    delete:
+      tags: [Books]
+      operationId: deleteBook
+      summary: Видалити книгу
+      responses:
+        '204':
+          description: Книгу видалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'JWT-токен у заголовку `Authorization: Bearer <token>`.'
+
+  parameters:
+    AuthorId:
+      name: authorId
+      in: path
+      required: true
+      description: Ідентифікатор автора
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1
+    BookId:
+      name: bookId
+      in: path
+      required: true
+      description: Ідентифікатор книги
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 10
+    Page:
+      name: page
+      in: query
+      description: Номер сторінки (з 1)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      description: Кількість записів на сторінці
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    Genre:
+      type: string
+      enum: [novel, poetry, drama, fantasy, science, history, children]
+      description: Жанр книги
+
+    AuthorInput:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+          example: Іван
+        lastName:
+          type: string
+          maxLength: 100
+          example: Франко
+        birthYear:
+          type: integer
+          minimum: 0
+          maximum: 2100
+          example: 1856
+        country:
+          type: string
+          example: Україна
+        biography:
+          type: string
+          maxLength: 2000
+
+    Author:
+      allOf:
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+              readOnly: true
+              example: 1
+        - $ref: '#/components/schemas/AuthorInput'
+
+    BookInput:
+      type: object
+      required: [title, isbn, authorId]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: Захар Беркут
+        isbn:
+          type: string
+          pattern: '^(97(8|9))?-?\d{1,5}-?\d{1,7}-?\d{1,7}-?[\dX]$'
+          example: '978-966-03-4567-1'
+        publishedYear:
+          type: integer
+          example: 1883
+        genre:
+          $ref: '#/components/schemas/Genre'
+        pages:
+          type: integer
+          minimum: 1
+          example: 256
+        authorId:
+          type: integer
+          format: int64
+          description: ID автора книги
+          example: 1
+        available:
+          type: boolean
+          default: true
+          description: Чи доступна книга для видачі
+
+    Book:
+      allOf:
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+              readOnly: true
+              example: 10
+        - $ref: '#/components/schemas/BookInput'
+
+    PageMeta:
+      type: object
+      required: [page, limit, total]
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 42
+
+    AuthorList:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Author'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    BookList:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: Ресурс не знайдено
+        details:
+          type: array
+          items:
+            type: string
+
+  responses:
+    BadRequest:
+      description: Некоректний запит
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 400
+            message: Некоректні параметри запиту
+            details: ['limit must be <= 100']
+    Unauthorized:
+      description: Відсутній або недійсний токен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 401
+            message: Потрібна авторизація
+    NotFound:
+      description: Ресурс не знайдено
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 404
+            message: Ресурс не знайдено
+    Conflict:
+      description: Конфлікт стану ресурсу
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 409
+            message: Книга з таким ISBN вже існує
+    UnprocessableEntity:
+      description: Помилка валідації даних
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 422
+            message: Автора з вказаним authorId не існує

@@ -1,0 +1,50 @@
+---
+title: About
+---
+
+**Library System API** (версія 1.0.0) — REST API бібліотечної системи, описане у форматі
+OpenAPI 3.0.3. API працює з двома сутностями: **Author** (автор) та **Book** (книга).
+Кожна книга належить одному автору (`authorId`).
+
+## Ресурси та операції
+
+| Ресурс | GET (список) | GET (за ID) | POST | PUT | DELETE |
+| --- | --- | --- | --- | --- | --- |
+| `/authors` | ✅ пагінація, фільтр `country`, пошук `search` | ✅ | ✅ | ✅ | ✅ (409, якщо є книги) |
+| `/books` | ✅ пагінація, фільтри `genre`, `authorId`, `available` | ✅ | ✅ | ✅ | ✅ |
+| `/authors/{authorId}/books` | ✅ книги автора | — | — | — | — |
+
+## Моделі
+
+**Author**: `id`, `firstName`*, `lastName`*, `birthYear`, `country`, `biography`.
+
+**Book**: `id`, `title`*, `isbn`*, `publishedYear`, `genre`, `pages`, `authorId`*, `available`.
+
+`genre` — одне з: `novel`, `poetry`, `drama`, `fantasy`, `science`, `history`, `children`.
+
+\* — обов'язкові поля при створенні.
+
+## Статус-коди
+
+| Код | Значення |
+| --- | --- |
+| `200 OK` | успішне читання або оновлення |
+| `201 Created` | ресурс створено, у заголовку `Location` — його URL |
+| `204 No Content` | ресурс видалено |
+| `400 Bad Request` | некоректні параметри запиту |
+| `401 Unauthorized` | немає або недійсний JWT-токен |
+| `404 Not Found` | ресурс не знайдено |
+| `409 Conflict` | дублікат ISBN або видалення автора з книгами |
+| `422 Unprocessable Entity` | помилка валідації (наприклад, неіснуючий `authorId`) |
+
+Усі помилки повертаються в єдиному форматі `Error`:
+
+```json
+{ "code": 404, "message": "Ресурс не знайдено", "details": [] }
+```
+
+## Посилання
+
+- OpenAPI-документ: [openapi/library-api.yaml](https://github.com/Soft41/library-api/blob/main/openapi/library-api.yaml)
+- SDK (TypeScript, Axios): [sdk/typescript-axios](https://github.com/Soft41/library-api/tree/main/sdk/typescript-axios)
+- Повний опис ендпоінтів: [API Reference](/api)
