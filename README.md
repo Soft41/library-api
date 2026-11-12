@@ -48,7 +48,7 @@ docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli:v7.10.0 ge
 cd docs
 npm install
 npm run dev      # локальний сервер
-npm run deploy   # збірка + публікація dist у гілку gh-pages
+npm run deploy   # збірка + публікація dist у гілку gh-pages (scripts/deploy.mjs)
 ```
 
 GitHub Pages налаштовано на гілку `gh-pages` (root).
